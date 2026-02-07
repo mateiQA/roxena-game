@@ -126,7 +126,7 @@ Roxena.LevelData = [
         playerSpawn: { x: 3, y: 12 },
         exit: { x: 95, y: 12 },
         checkpoints: [
-            { x: 35, y: 12 },
+            { x: 33, y: 12 },
             { x: 65, y: 12 }
         ],
         enemies: [
