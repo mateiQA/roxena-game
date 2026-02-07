@@ -4,7 +4,7 @@
 (function() {
     'use strict';
 
-    const PICKUP_DISTANCE = 24;
+    const PICKUP_PADDING = 6; // Extra pixels of forgiveness around bounding boxes
 
     class Collectible extends Roxena.Entity {
         constructor(x, y, type, value) {
@@ -27,12 +27,15 @@
 
         tryCollect(player) {
             if (this.collected) return false;
-            const dx = player.centerX() - this.centerX();
-            const dy = player.centerY() - this.centerY();
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            // Scale pickup range with player size from supplements
+            // Use bounding box overlap with padding — if player body touches item, pick it up
             const scale = (player.powerUps && player.powerUps.getScale) ? player.powerUps.getScale() : 1;
-            if (dist < PICKUP_DISTANCE * scale) {
+            const pad = PICKUP_PADDING * scale;
+            const pb = player.getBounds();
+            const overlap = pb.x - pad < this.x + this.width &&
+                            pb.x + pb.width + pad > this.x &&
+                            pb.y - pad < this.y + this.height &&
+                            pb.y + pb.height + pad > this.y;
+            if (overlap) {
                 this.collected = true;
                 this._onCollect(player);
                 return true;
