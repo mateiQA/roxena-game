@@ -817,10 +817,12 @@ Roxena.Game = class Game {
         ctx.font = 'bold 16px monospace';
         ctx.fillText('ontouchstart' in window ? 'Tap to start' : 'Press SPACE to start', this.width / 2, this.height / 2 + 80);
 
-        // High scores hint
-        ctx.fillStyle = 'rgba(255,215,0,0.6)';
-        ctx.font = '14px monospace';
-        ctx.fillText('ontouchstart' in window ? 'Tap HIGH SCORES below' : 'Press H for High Scores', this.width / 2, this.height / 2 + 110);
+        // High scores hint (desktop only — mobile has the HTML button)
+        if (!('ontouchstart' in window)) {
+            ctx.fillStyle = 'rgba(255,215,0,0.6)';
+            ctx.font = '14px monospace';
+            ctx.fillText('Press H for High Scores', this.width / 2, this.height / 2 + 110);
+        }
 
         // Controls
         ctx.fillStyle = 'rgba(255,255,255,0.3)';
