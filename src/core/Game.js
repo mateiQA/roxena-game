@@ -90,6 +90,8 @@ Roxena.Game = class Game {
         this.highScoreLoading = false;
         this._submitName = false;
         this.nameInput = document.getElementById('name-input');
+        this.nameForm = document.getElementById('name-form');
+        this.nameSubmitBtn = document.getElementById('name-submit');
         if (this.nameInput) {
             this.nameInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
@@ -97,6 +99,15 @@ Roxena.Game = class Game {
                     this._submitName = true;
                 }
             });
+        }
+        if (this.nameSubmitBtn) {
+            this.nameSubmitBtn.addEventListener('click', () => {
+                this._submitName = true;
+            });
+            this.nameSubmitBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                this._submitName = true;
+            }, { passive: false });
         }
         this._loadHighScores();
     }
@@ -223,10 +234,12 @@ Roxena.Game = class Game {
                     // Go to name entry for high score
                     this.state = Roxena.STATES.HIGH_SCORE_ENTRY;
                     this.lastEntryName = null;
+                    if (this.nameForm) {
+                        this.nameForm.style.display = 'flex';
+                    }
                     if (this.nameInput) {
                         this.nameInput.value = '';
-                        this.nameInput.style.pointerEvents = 'auto';
-                        setTimeout(() => this.nameInput.focus(), 100);
+                        setTimeout(() => this.nameInput.focus(), 150);
                     }
                 } else {
                     // Game over — show high scores (view only)
@@ -248,10 +261,8 @@ Roxena.Game = class Game {
                 const name = (this.nameInput ? this.nameInput.value : '').trim().substring(0, 10);
                 if (name.length > 0) {
                     this.lastEntryName = name;
-                    if (this.nameInput) {
-                        this.nameInput.blur();
-                        this.nameInput.style.pointerEvents = 'none';
-                    }
+                    if (this.nameInput) this.nameInput.blur();
+                    if (this.nameForm) this.nameForm.style.display = 'none';
                     this._saveHighScore(name, this.player.score);
                     this.state = Roxena.STATES.HIGH_SCORE_DISPLAY;
                     this.screenTimer = 0;
@@ -945,54 +956,7 @@ Roxena.Game = class Game {
         ctx.font = 'bold 20px monospace';
         ctx.fillText(`Score: ${this.player.score}`, this.width / 2, this.height / 2 - 50);
 
-        // Draw the typed name
-        const name = this.nameInput ? this.nameInput.value : '';
-        const displayName = name || '_';
-
-        // Text box background
-        const boxW = 260;
-        const boxH = 44;
-        const boxX = this.width / 2 - boxW / 2;
-        const boxY = this.height / 2 - boxH / 2 - 5;
-        ctx.fillStyle = '#1a1a3e';
-        ctx.fillRect(boxX, boxY, boxW, boxH);
-        ctx.strokeStyle = '#FFD700';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(boxX, boxY, boxW, boxH);
-
-        // Typed text
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 24px monospace';
-        ctx.fillText(displayName, this.width / 2, this.height / 2 + 8);
-
-        // Blinking cursor
-        if (name.length < 10 && Math.floor(Date.now() / 500) % 2 === 0) {
-            const textWidth = ctx.measureText(name).width;
-            ctx.fillStyle = '#FFD700';
-            ctx.fillRect(this.width / 2 + textWidth / 2 + 2, boxY + 8, 2, boxH - 16);
-        }
-
-        ctx.fillStyle = '#aaa';
-        ctx.font = '14px monospace';
-        if ('ontouchstart' in window) {
-            ctx.fillText('Type your name, then tap SUBMIT', this.width / 2, this.height / 2 + 50);
-            // Draw submit button for mobile
-            const btnW = 120;
-            const btnH = 36;
-            const btnX = this.width / 2 - btnW / 2;
-            const btnY = this.height / 2 + 62;
-            ctx.fillStyle = '#FFD700';
-            ctx.fillRect(btnX, btnY, btnW, btnH);
-            ctx.fillStyle = '#000';
-            ctx.font = 'bold 16px monospace';
-            ctx.fillText('SUBMIT', this.width / 2, btnY + 24);
-        } else {
-            ctx.fillText('Press ENTER to submit', this.width / 2, this.height / 2 + 50);
-        }
-
-        ctx.fillStyle = '#666';
-        ctx.font = '11px monospace';
-        ctx.fillText(`${name.length}/10 characters`, this.width / 2, this.height / 2 + 80);
+        // HTML input and submit button handle the rest (overlaid on canvas)
     }
 
     _drawHighScoreDisplay(ctx) {
