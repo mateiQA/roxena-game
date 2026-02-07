@@ -10,8 +10,12 @@ Roxena.STATES = {
     PAUSED: 'paused',
     LEVEL_COMPLETE: 'level_complete',
     GAME_OVER: 'game_over',
-    VICTORY: 'victory'
+    VICTORY: 'victory',
+    HIGH_SCORE_ENTRY: 'high_score_entry',
+    HIGH_SCORE_DISPLAY: 'high_score_display'
 };
+
+Roxena.HIGHSCORE_API = 'https://jsonblob.com/api/jsonBlob/019c388b-9ef3-72dc-9786-cb907c2e1527';
 
 // Level descriptions for intro screens
 Roxena.LevelDescriptions = [
@@ -79,6 +83,22 @@ Roxena.Game = class Game {
 
         // Title screen animation
         this.titleAnimTimer = 0;
+
+        // High scores
+        this.highScores = [];
+        this.lastEntryName = null;
+        this.highScoreLoading = false;
+        this._submitName = false;
+        this.nameInput = document.getElementById('name-input');
+        if (this.nameInput) {
+            this.nameInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    this._submitName = true;
+                }
+            });
+        }
+        this._loadHighScores();
     }
 
     loadLevel(index) {
@@ -199,9 +219,53 @@ Roxena.Game = class Game {
             if (this.screenTimer > 60 && (this.input.wasPressed('Space') || this.input.wasPressed('Enter'))) {
                 if (this.state === Roxena.STATES.LEVEL_COMPLETE) {
                     this._nextLevel();
+                } else if (this.state === Roxena.STATES.VICTORY) {
+                    // Go to name entry for high score
+                    this.state = Roxena.STATES.HIGH_SCORE_ENTRY;
+                    this.lastEntryName = null;
+                    if (this.nameInput) {
+                        this.nameInput.value = '';
+                        this.nameInput.style.pointerEvents = 'auto';
+                        setTimeout(() => this.nameInput.focus(), 100);
+                    }
                 } else {
-                    this._restart();
+                    // Game over — show high scores (view only)
+                    this.state = Roxena.STATES.HIGH_SCORE_DISPLAY;
+                    this.lastEntryName = null;
+                    this.screenTimer = 0;
+                    this._loadHighScores();
                 }
+            }
+            this.input.update();
+            return;
+        }
+
+        // High score name entry
+        if (this.state === Roxena.STATES.HIGH_SCORE_ENTRY) {
+            // Enter from keyboard, Space from tap-zone touch, or _submitName flag from input keydown
+            if (this.input.wasPressed('Enter') || this.input.wasPressed('Space') || this._submitName) {
+                this._submitName = false;
+                const name = (this.nameInput ? this.nameInput.value : '').trim().substring(0, 10);
+                if (name.length > 0) {
+                    this.lastEntryName = name;
+                    if (this.nameInput) {
+                        this.nameInput.blur();
+                        this.nameInput.style.pointerEvents = 'none';
+                    }
+                    this._saveHighScore(name, this.player.score);
+                    this.state = Roxena.STATES.HIGH_SCORE_DISPLAY;
+                    this.screenTimer = 0;
+                }
+            }
+            this.input.update();
+            return;
+        }
+
+        // High score display
+        if (this.state === Roxena.STATES.HIGH_SCORE_DISPLAY) {
+            this.screenTimer++;
+            if (this.screenTimer > 60 && (this.input.wasPressed('Space') || this.input.wasPressed('Enter'))) {
+                this._restart();
             }
             this.input.update();
             return;
@@ -663,6 +727,10 @@ Roxena.Game = class Game {
             this._drawGameOver(ctx);
         } else if (this.state === Roxena.STATES.VICTORY) {
             this._drawVictory(ctx);
+        } else if (this.state === Roxena.STATES.HIGH_SCORE_ENTRY) {
+            this._drawHighScoreEntry(ctx);
+        } else if (this.state === Roxena.STATES.HIGH_SCORE_DISPLAY) {
+            this._drawHighScoreDisplay(ctx);
         }
     }
 
@@ -860,15 +928,186 @@ Roxena.Game = class Game {
         if (this.screenTimer > 60) {
             ctx.fillStyle = '#aaa';
             ctx.font = '14px monospace';
-            ctx.fillText('ontouchstart' in window ? 'Tap to play again' : 'Press SPACE to play again', this.width / 2, this.height / 2 + 90);
+            ctx.fillText('ontouchstart' in window ? 'Tap to continue' : 'Press SPACE to continue', this.width / 2, this.height / 2 + 90);
         }
+    }
+
+    _drawHighScoreEntry(ctx) {
+        ctx.fillStyle = 'rgba(0,0,40,0.9)';
+        ctx.fillRect(0, 0, this.width, this.height);
+
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 28px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('ENTER YOUR NAME', this.width / 2, this.height / 2 - 80);
+
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 20px monospace';
+        ctx.fillText(`Score: ${this.player.score}`, this.width / 2, this.height / 2 - 50);
+
+        // Draw the typed name
+        const name = this.nameInput ? this.nameInput.value : '';
+        const displayName = name || '_';
+
+        // Text box background
+        const boxW = 260;
+        const boxH = 44;
+        const boxX = this.width / 2 - boxW / 2;
+        const boxY = this.height / 2 - boxH / 2 - 5;
+        ctx.fillStyle = '#1a1a3e';
+        ctx.fillRect(boxX, boxY, boxW, boxH);
+        ctx.strokeStyle = '#FFD700';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(boxX, boxY, boxW, boxH);
+
+        // Typed text
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 24px monospace';
+        ctx.fillText(displayName, this.width / 2, this.height / 2 + 8);
+
+        // Blinking cursor
+        if (name.length < 10 && Math.floor(Date.now() / 500) % 2 === 0) {
+            const textWidth = ctx.measureText(name).width;
+            ctx.fillStyle = '#FFD700';
+            ctx.fillRect(this.width / 2 + textWidth / 2 + 2, boxY + 8, 2, boxH - 16);
+        }
+
+        ctx.fillStyle = '#aaa';
+        ctx.font = '14px monospace';
+        if ('ontouchstart' in window) {
+            ctx.fillText('Type your name, then tap SUBMIT', this.width / 2, this.height / 2 + 50);
+            // Draw submit button for mobile
+            const btnW = 120;
+            const btnH = 36;
+            const btnX = this.width / 2 - btnW / 2;
+            const btnY = this.height / 2 + 62;
+            ctx.fillStyle = '#FFD700';
+            ctx.fillRect(btnX, btnY, btnW, btnH);
+            ctx.fillStyle = '#000';
+            ctx.font = 'bold 16px monospace';
+            ctx.fillText('SUBMIT', this.width / 2, btnY + 24);
+        } else {
+            ctx.fillText('Press ENTER to submit', this.width / 2, this.height / 2 + 50);
+        }
+
+        ctx.fillStyle = '#666';
+        ctx.font = '11px monospace';
+        ctx.fillText(`${name.length}/10 characters`, this.width / 2, this.height / 2 + 80);
+    }
+
+    _drawHighScoreDisplay(ctx) {
+        ctx.fillStyle = 'rgba(0,0,40,0.9)';
+        ctx.fillRect(0, 0, this.width, this.height);
+
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 28px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('HIGH SCORES', this.width / 2, 80);
+
+        if (this.highScoreLoading) {
+            ctx.fillStyle = '#aaa';
+            ctx.font = '16px monospace';
+            ctx.fillText('Loading...', this.width / 2, this.height / 2);
+        } else if (this.highScores.length === 0) {
+            ctx.fillStyle = '#aaa';
+            ctx.font = '16px monospace';
+            ctx.fillText('No scores yet', this.width / 2, this.height / 2);
+        } else {
+            const startY = 130;
+            const rowH = 40;
+            for (let i = 0; i < this.highScores.length && i < 5; i++) {
+                const entry = this.highScores[i];
+                const y = startY + i * rowH;
+                const isNew = this.lastEntryName && entry.name === this.lastEntryName && entry.score === this.player.score;
+
+                // Highlight row
+                if (isNew) {
+                    ctx.fillStyle = 'rgba(255,215,0,0.15)';
+                    ctx.fillRect(this.width / 2 - 200, y - 18, 400, 32);
+                }
+
+                // Rank
+                ctx.fillStyle = isNew ? '#FFD700' : '#888';
+                ctx.font = 'bold 18px monospace';
+                ctx.textAlign = 'left';
+                ctx.fillText(`#${i + 1}`, this.width / 2 - 180, y);
+
+                // Name
+                ctx.fillStyle = isNew ? '#FFD700' : '#fff';
+                ctx.textAlign = 'left';
+                ctx.fillText(entry.name, this.width / 2 - 100, y);
+
+                // Score
+                ctx.textAlign = 'right';
+                ctx.fillText(entry.score.toLocaleString(), this.width / 2 + 180, y);
+            }
+        }
+
+        if (this.screenTimer > 60) {
+            ctx.fillStyle = '#aaa';
+            ctx.font = '14px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('ontouchstart' in window ? 'Tap to play again' : 'Press SPACE to play again', this.width / 2, this.height - 40);
+        }
+    }
+
+    _loadHighScores() {
+        this.highScoreLoading = true;
+        fetch(Roxena.HIGHSCORE_API)
+            .then(r => r.json())
+            .then(data => {
+                if (Array.isArray(data)) {
+                    this.highScores = data.sort((a, b) => b.score - a.score).slice(0, 5);
+                    try { localStorage.setItem('roxena_highscores', JSON.stringify(this.highScores)); } catch(e) {}
+                }
+                this.highScoreLoading = false;
+            })
+            .catch(() => {
+                // Fall back to localStorage
+                try {
+                    const cached = JSON.parse(localStorage.getItem('roxena_highscores') || '[]');
+                    if (Array.isArray(cached)) this.highScores = cached;
+                } catch(e) {}
+                this.highScoreLoading = false;
+            });
+    }
+
+    _saveHighScore(name, score) {
+        this.highScoreLoading = true;
+        // Fetch latest, merge, save
+        fetch(Roxena.HIGHSCORE_API)
+            .then(r => r.json())
+            .then(data => {
+                if (!Array.isArray(data)) data = [];
+                data.push({ name: name, score: score });
+                data.sort((a, b) => b.score - a.score);
+                data = data.slice(0, 5);
+                this.highScores = data;
+                try { localStorage.setItem('roxena_highscores', JSON.stringify(data)); } catch(e) {}
+                return fetch(Roxena.HIGHSCORE_API, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+            })
+            .then(() => { this.highScoreLoading = false; })
+            .catch(() => {
+                // Save locally if network fails
+                this.highScores.push({ name: name, score: score });
+                this.highScores.sort((a, b) => b.score - a.score);
+                this.highScores = this.highScores.slice(0, 5);
+                try { localStorage.setItem('roxena_highscores', JSON.stringify(this.highScores)); } catch(e) {}
+                this.highScoreLoading = false;
+            });
     }
 
     _drawHUD(ctx) {
         const player = this.player;
 
-        // Don't draw HUD on title screen
-        if (this.state === Roxena.STATES.TITLE_SCREEN) return;
+        // Don't draw HUD on title/highscore screens
+        if (this.state === Roxena.STATES.TITLE_SCREEN ||
+            this.state === Roxena.STATES.HIGH_SCORE_ENTRY ||
+            this.state === Roxena.STATES.HIGH_SCORE_DISPLAY) return;
 
         // Top bar background
         ctx.fillStyle = 'rgba(0,0,0,0.6)';

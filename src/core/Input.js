@@ -7,8 +7,18 @@ Roxena.Input = class Input {
         this.justReleased = {};
         this._touchActive = {}; // track which touch buttons are currently held
 
-        // Keyboard
+        // Keyboard (skip when name-input is focused so typing works)
+        this._nameInput = document.getElementById('name-input');
         window.addEventListener('keydown', (e) => {
+            if (this._nameInput && document.activeElement === this._nameInput) {
+                // Only track Enter so Game.js can detect submit
+                if (e.code === 'Enter') {
+                    if (!this.keys[e.code]) this.justPressed[e.code] = true;
+                    this.keys[e.code] = true;
+                    e.preventDefault();
+                }
+                return;
+            }
             if (!this.keys[e.code]) {
                 this.justPressed[e.code] = true;
             }
