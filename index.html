@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="screen-orientation" content="landscape">
+    <title>Roxena</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Portrait rotation prompt -->
+    <div id="rotate-prompt">
+        <div id="rotate-icon">&#128241;&#8635;</div>
+        <div>Rotate your phone to landscape</div>
+    </div>
+
+    <div id="game-wrapper">
+        <canvas id="game-canvas" width="800" height="480"></canvas>
+        <div id="touch-controls">
+            <div id="tap-zone"></div>
+            <div id="btn-left" class="touch-btn" data-key="ArrowLeft">&#9664;</div>
+            <div id="btn-right" class="touch-btn" data-key="ArrowRight">&#9654;</div>
+            <div id="btn-jump" class="touch-btn" data-key="Space">JUMP</div>
+            <div id="btn-punch" class="touch-btn" data-key="KeyX">&#9994;</div>
+            <div id="btn-kick" class="touch-btn" data-key="KeyC">&#129406;</div>
+        </div>
+    </div>
+
+    <!-- Utils -->
+    <script src="src/utils/math.js"></script>
+
+    <!-- Core -->
+    <script src="src/core/Input.js"></script>
+    <script src="src/core/GameLoop.js"></script>
+    <script src="src/core/Camera.js"></script>
+
+    <!-- Physics -->
+    <script src="src/physics/Physics.js"></script>
+    <script src="src/physics/Collision.js"></script>
+
+    <!-- World -->
+    <script src="src/world/Tile.js"></script>
+    <script src="src/world/TileMap.js"></script>
+    <script src="src/world/Background.js"></script>
+    <script src="src/world/Level.js"></script>
+
+    <!-- Data -->
+    <script src="src/data/enemies.js"></script>
+    <script src="src/data/levels.js"></script>
+
+    <!-- Items -->
+    <script src="src/items/PowerUp.js"></script>
+    <script src="src/data/items.js"></script>
+
+    <!-- Entities -->
+    <script src="src/entities/Entity.js"></script>
+    <script src="src/items/Collectible.js"></script>
+    <script src="src/entities/Particle.js"></script>
+    <script src="src/entities/Projectile.js"></script>
+    <script src="src/entities/Player.js"></script>
+    <script src="src/entities/Enemy.js"></script>
+    <script src="src/entities/enemies/Candy.js"></script>
+    <script src="src/entities/enemies/Chips.js"></script>
+    <script src="src/entities/enemies/Soda.js"></script>
+    <script src="src/entities/enemies/Cake.js"></script>
+    <script src="src/entities/enemies/BossCosti.js"></script>
+
+    <!-- Game (after all dependencies) -->
+    <script src="src/core/Game.js"></script>
+
+    <!-- Bootstrap -->
+    <script src="src/main.js"></script>
+
+    <script>
+        // Try to lock landscape orientation
+        try {
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('landscape').catch(function(){});
+            }
+        } catch(e) {}
+    </script>
+</body>
+</html>
