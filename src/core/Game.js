@@ -92,6 +92,9 @@ Roxena.Game = class Game {
         this.nameInput = document.getElementById('name-input');
         this.nameForm = document.getElementById('name-form');
         this.nameSubmitBtn = document.getElementById('name-submit');
+        this.btnHighScores = document.getElementById('btn-highscores');
+        this._fromTitleScreen = false;
+        this._showHighScoresFromTitle = false;
         if (this.nameInput) {
             this.nameInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
@@ -107,6 +110,15 @@ Roxena.Game = class Game {
             this.nameSubmitBtn.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 this._submitName = true;
+            }, { passive: false });
+        }
+        if (this.btnHighScores) {
+            this.btnHighScores.addEventListener('click', () => {
+                this._showHighScoresFromTitle = true;
+            });
+            this.btnHighScores.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                this._showHighScoresFromTitle = true;
             }, { passive: false });
         }
         this._loadHighScores();
@@ -196,7 +208,20 @@ Roxena.Game = class Game {
         // Title screen
         if (this.state === Roxena.STATES.TITLE_SCREEN) {
             this.titleAnimTimer += 0.02;
+            if (this.btnHighScores) this.btnHighScores.style.display = 'block';
+            if (this._showHighScoresFromTitle || this.input.wasPressed('KeyH')) {
+                this._showHighScoresFromTitle = false;
+                this._fromTitleScreen = true;
+                this.lastEntryName = null;
+                this.screenTimer = 0;
+                this.state = Roxena.STATES.HIGH_SCORE_DISPLAY;
+                if (this.btnHighScores) this.btnHighScores.style.display = 'none';
+                this._loadHighScores();
+                this.input.update();
+                return;
+            }
             if (this.input.wasPressed('Space') || this.input.wasPressed('Enter')) {
+                if (this.btnHighScores) this.btnHighScores.style.display = 'none';
                 this.loadLevel(0);
             }
             this.input.update();
@@ -276,7 +301,12 @@ Roxena.Game = class Game {
         if (this.state === Roxena.STATES.HIGH_SCORE_DISPLAY) {
             this.screenTimer++;
             if (this.screenTimer > 60 && (this.input.wasPressed('Space') || this.input.wasPressed('Enter'))) {
-                this._restart();
+                if (this._fromTitleScreen) {
+                    this._fromTitleScreen = false;
+                    this.state = Roxena.STATES.TITLE_SCREEN;
+                } else {
+                    this._restart();
+                }
             }
             this.input.update();
             return;
@@ -787,6 +817,13 @@ Roxena.Game = class Game {
         ctx.font = 'bold 16px monospace';
         ctx.fillText('ontouchstart' in window ? 'Tap to start' : 'Press SPACE to start', this.width / 2, this.height / 2 + 80);
 
+        // High scores hint (desktop only — mobile uses the HTML button)
+        if (!('ontouchstart' in window)) {
+            ctx.fillStyle = 'rgba(255,215,0,0.5)';
+            ctx.font = '13px monospace';
+            ctx.fillText('Press H for High Scores', this.width / 2, this.height / 2 + 110);
+        }
+
         // Controls
         ctx.fillStyle = 'rgba(255,255,255,0.3)';
         ctx.font = '11px monospace';
@@ -1011,7 +1048,11 @@ Roxena.Game = class Game {
             ctx.fillStyle = '#aaa';
             ctx.font = '14px monospace';
             ctx.textAlign = 'center';
-            ctx.fillText('ontouchstart' in window ? 'Tap to play again' : 'Press SPACE to play again', this.width / 2, this.height - 40);
+            const isMobile = 'ontouchstart' in window;
+            const backText = this._fromTitleScreen
+                ? (isMobile ? 'Tap to go back' : 'Press SPACE to go back')
+                : (isMobile ? 'Tap to play again' : 'Press SPACE to play again');
+            ctx.fillText(backText, this.width / 2, this.height - 40);
         }
     }
 
