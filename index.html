@@ -80,6 +80,30 @@
                 screen.orientation.lock('landscape').catch(function(){});
             }
         } catch(e) {}
+
+        // Fix mobile viewport: 100vh lies on iOS Safari (includes area behind browser chrome)
+        // Use window.innerHeight/innerWidth for actual visible size
+        (function() {
+            var isMobile = 'ontouchstart' in window || window.matchMedia('(pointer: coarse)').matches;
+            if (!isMobile) return;
+
+            var wrapper = document.getElementById('game-wrapper');
+            if (!wrapper) return;
+
+            function resizeGame() {
+                var w = window.innerWidth;
+                var h = window.innerHeight;
+                wrapper.style.width = w + 'px';
+                wrapper.style.height = h + 'px';
+            }
+
+            resizeGame();
+            window.addEventListener('resize', resizeGame);
+            window.addEventListener('orientationchange', function() {
+                setTimeout(resizeGame, 100);
+                setTimeout(resizeGame, 300);
+            });
+        })();
     </script>
 </body>
 </html>
