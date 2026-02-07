@@ -324,7 +324,7 @@ Roxena.Game = class Game {
             timer: 90
         };
 
-        player.state = Roxena.PlayerStates.DEAD;
+        player.die();
         player.vx = 0;
         player.vy = 0;
         player.y = -200;
